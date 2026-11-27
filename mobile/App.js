@@ -8,12 +8,17 @@ SafeAreaView,
 } from 'react-native-safe-area-context'
 import Carregando from './src/components/Carregando';
 import ListaFilmes from './src/components/ListaFilmes';
+import Busca from './src/components/Busca';
 import backEndClient from './src/utils/backendClient'
 
 export default function App() {
   const [emAlta, setEmAlta] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
+  const [mensagemCarregando, setMensagemCarregando] = useState('Buscando os filmes em alta...')
+  const [termo, setTermo] = useState('')
+  const [termoBuscado, setTermoBuscado] = useState('')
+  const [resultados, setResultados] = useState(null)
   useEffect(()  => {
     async function carregar(){
       try{
@@ -27,15 +32,56 @@ export default function App() {
     }
     }
     
-    carregar() 
+    carregar()
     }, [])
+
+  async function buscar(){
+    setMensagemCarregando('Procurando filmes...')
+    setCarregando(true)
+    try{
+      const result = await backEndClient.get('/filmes', {
+        params: {
+          busca: termo
+        }
+      })
+      setResultados(result.data)
+      setTermoBuscado(termo)
+      setErro(null)
+      setCarregando(false)
+    }catch(error){
+      console.log(error)
+      setCarregando(false)
+      setErro(error.response?.data?.mensagem || "Não foi possível buscar os filmes.")
+    }
+  }
+
+  function limpar(){
+    setTermo('')
+    setResultados(null)
+    setErro(null)
+  }
+
   return (
-    
+
 
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <Cabecalho></Cabecalho>
-        {carregando? <Carregando mensagem='Buscando os filmes em alta...'></Carregando>: erro!=null? <Text style={styles.erro}>{erro}</Text> : <ListaFilmes titulo='Em alta nesta semana' filmes={emAlta}></ListaFilmes>}
+        <Busca
+          termo={termo}
+          onTermoAlterado={setTermo}
+          onBuscar={buscar}
+          onLimpar={limpar} />
+        {carregando ?
+          <Carregando mensagem={mensagemCarregando}></Carregando>
+        : erro != null ?
+          <Text style={styles.erro}>{erro}</Text>
+        : resultados === null ?
+          <ListaFilmes titulo='Em alta nesta semana' filmes={emAlta}></ListaFilmes>
+        : resultados.length === 0 ?
+          <Text style={styles.aviso}>Nenhum filme encontrado para “{termoBuscado}”.</Text>
+        : <ListaFilmes titulo={`Resultados para “${termoBuscado}”`} filmes={resultados}></ListaFilmes>
+        }
         <Creditos></Creditos>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -53,6 +99,10 @@ export default function App() {
     },
     erro:{
       color:'#D62F3A',
+      textAlign: 'center'
+    },
+    aviso:{
+      color:'#b4b4b4',
       textAlign: 'center'
     }
 });
