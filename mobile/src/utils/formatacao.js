@@ -7,3 +7,18 @@ export const formatarNota = (nota)=>{
     return `★ ${nota}`
 }
 export default formatarNota
+
+export const formatarDuracao = (duracao)=>{
+    if(duracao == 0 || duracao == null){
+        return null
+    }
+    const horas = Math.floor(duracao / 60)
+    const minutos = duracao % 60
+    if(horas == 0){
+        return `${minutos}min`
+    }
+    if(minutos == 0){
+        return `${horas}h`
+    }
+    return `${horas}h ${minutos}min`
+}
